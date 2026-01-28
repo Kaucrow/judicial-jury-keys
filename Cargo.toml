@@ -1,0 +1,3 @@
+[workspace]
+members = ["jjk-rx", "jjk-tx"]
+resolver = "2"
