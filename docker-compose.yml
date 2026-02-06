@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: jjk
+      POSTGRES_PASSWORD: jjk
+      POSTGRES_DB: jjk
+    networks:
+      - jjk-network
+  jjk-rx:
+    build: ./jjk-rx
+    depends_on:
+      - db
+    networks:
+      - jjk-network
+  
+  jjk-tx:
+    build: ./jjk-tx
+    networks:
+      - jjk-network
+
+  frontend:
+    build: ./jjk-front
+    networks:
+      - jjk-network
+  
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - jjk-rx
+      - jjk-tx
+    networks:
+      - jjk-network
+
+networks:
+  jjk-network:
+    driver: bridge
