@@ -1,16 +1,43 @@
 <script setup>
+import { ref, onMounted } from 'vue';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import ColumnGroup from 'primevue/columngroup';   
 import Row from 'primevue/row';                   
 import Button from 'primevue/button';
 
-const products = [
-    { code: 'C001', name: 'Case A', category: 'Theft' },
-    { code: 'C002', name: 'Case B', category: 'Fraud' },
-    { code: 'C003', name: 'Case C', category: 'Assault' },
-];
+//const products = [
+//    { code: 'C001', name: 'Case A', category: 'Theft' },
+//    { code: 'C002', name: 'Case B', category: 'Fraud' },
+//    { code: 'C003', name: 'Case C', category: 'Assault' },
+//];
 
+const products = ref([]);
+
+onMounted(async () => {
+  try {
+    const response = await fetch('/jjk/rx/cases');
+    const cases = await response.json();
+    products.value = cases;
+  } catch (error) {
+    console.error('Error fetching cases:', error);
+  }
+});
+
+const downloadCase = async (caseCode) => {
+  try {
+    const response = await fetch(`/jjk/rx/download/${caseCode}`);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${caseCode}.pdf`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error('Error downloading case:', error);
+  }
+};
 </script>
 
 <template>
@@ -25,7 +52,7 @@ const products = [
             <Column field="category" header="Category"></Column>
             <Column header="Download">
                 <template #body="slotProps">
-                    <Button label="Download" class="p-button-success"></Button>
+                    <<Button label="Download" class="p-button-success" @click="downloadCase(slotProps.data.code)"></Button>
                 </template>
             </Column>
         </DataTable>
