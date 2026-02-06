@@ -9,4 +9,6 @@ docker compose up
 
 docker compose down
 
-
+front will make calls to
+fetch('/api/rx/random-endpoint')
+fetch('/api/tx/random-endpoint')
