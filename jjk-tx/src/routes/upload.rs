@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::{
-    transmission::encryption::perform_hybrid_encryption,
-    settings::get_settings,
+    encryption::Encrypter,
+    transmission::Transmitter,
 };
 
 pub async fn upload(
@@ -28,34 +28,13 @@ pub async fn upload(
 
         // Encrypt the bytes
         // Return immediately after processing the first file found
-        match perform_hybrid_encryption(&file_bytes).await {
+        match Encrypter::perform_hybrid_encryption(&file_bytes).await {
             Ok(pkg) => {
-                let client = reqwest::Client::new();
-
-                let settings = get_settings()
-                    .map_err(actix_web::error::ErrorInternalServerError)?;
-
                 // Send the encrypted package to RX
-                debug!("Sending encrypted package to RX...");
-
-                let rx_response = client.post(
-                    format!(
-                        "http://{}:{}/{}", settings.rx.host, settings.rx.port, settings.rx.rcv_endp)
-                    )
-                    .json(&pkg)
-                    .send()
-                    .await
+                let rx_response = Transmitter::send_encrypted_pkg(&pkg).await
                     .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
-                
-                let raw_status = rx_response.status().as_u16();
-                let status = actix_web::http::StatusCode::from_u16(raw_status)
-                    .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
 
-                let body = rx_response.text().await.unwrap_or_else(|_| "Could not read rx response".to_string());
-
-                debug!("Encrypted package sent");
-
-                return Ok(HttpResponse::build(status).body(body))
+                return Ok(rx_response)
             },
             Err(e) => return Ok(HttpResponse::InternalServerError().body(format!("{:#}", e))),
         }

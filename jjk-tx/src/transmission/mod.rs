@@ -1,1 +1,3 @@
-pub mod encryption;
+pub mod transmitter;
+
+pub use transmitter::Transmitter;
