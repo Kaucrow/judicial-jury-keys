@@ -1,43 +1,20 @@
 use crate::prelude::*;
-use crate::settings::{get_settings, Settings};
+use crate::transmission::Transmitter;
 use super::EncryptedPackage;
 
 pub struct Encrypter {}
 
 impl Encrypter {
     pub async fn perform_hybrid_encryption(
-        msg_bytes: &[u8], 
+        msg_bytes: &[u8],
     ) -> anyhow::Result<EncryptedPackage> {
-        let settings: Settings = get_settings()?;
-
         // Hash the message bytes
         let mut hasher = Sha256::new();
         hasher.update(msg_bytes);
         let hash = hasher.finalize();
 
         // Fetch public key from RX
-        let rx_url = format!("http://{}:{}/{}", settings.rx.host, settings.rx.port, settings.rx.pub_key_endp);
-        debug!("Fetching public key from RX...");
-
-        let client = reqwest::Client::new();
-
-        // RX server should return a raw PEM string in the body
-        let pem_string = client.get(rx_url)
-            .send()
-            .await
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, anyhow!("Reqwest error: {}", e)))?
-            .text()
-            .await
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, anyhow!("Text error: {}", e)))?;
-
-        debug!("Got RX public key {}", pem_string);
-
-        // Parse the PEM into an RsaPublicKey
-        // Use from_public_key_pem (PKCS8) or from_pkcs1_pem depending on format.
-        // PKCS8 is the modern standard.
-        let rx_pub_key = RsaPublicKey::from_public_key_pem(&pem_string)
-            .or_else(|_| RsaPublicKey::from_pkcs1_pem(&pem_string)) // Fallback if format differs
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("PEM Parse error: {}", e)))?;
+        let rx_pub_key = Transmitter::get_pub_key().await?;
 
         let mut rng = OsRng;
 
