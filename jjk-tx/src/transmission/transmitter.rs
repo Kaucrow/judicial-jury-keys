@@ -3,11 +3,12 @@ use crate::{
     settings::get_settings,
     encryption::EncryptedPackage,
 };
+use super::{RxKeyResponse, RxPayload};
 
 pub struct Transmitter {}
 
 impl Transmitter {
-    pub async fn get_pub_key() -> anyhow::Result<RsaPublicKey> {
+    pub async fn get_pub_key() -> anyhow::Result<(String, RsaPublicKey)>{
         let settings = get_settings()?;
 
         // Fetch public key from RX
@@ -16,47 +17,46 @@ impl Transmitter {
 
         let client = reqwest::Client::new();
 
-        // RX server should return a raw PEM string in the body
-        let pem_string = client.get(rx_url)
+        let response = client.get(&rx_url)
             .send()
-            .await
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, anyhow!("Reqwest error: {}", e)))?
-            .text()
-            .await
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, anyhow!("Text error: {}", e)))?;
+            .await?
+            .json::<RxKeyResponse>()
+            .await?;
 
-        debug!("Got RX public key {}", pem_string);
+        debug!("Got RX public key for PDF ID '{}'", response.pdf_id);
 
-        // Parse the PEM into an RsaPublicKey
-        // Use from_public_key_pem (PKCS8) or from_pkcs1_pem depending on format.
-        // PKCS8 is the modern standard.
-        Ok(RsaPublicKey::from_public_key_pem(&pem_string)
-            .or_else(|_| RsaPublicKey::from_pkcs1_pem(&pem_string)) // Fallback if format differs
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("PEM Parse error: {}", e)))?)
+        // Parse the PEM string from the JSON field
+        let pub_key = RsaPublicKey::from_public_key_pem(&response.pub_key)
+            .or_else(|_| RsaPublicKey::from_pkcs1_pem(&response.pub_key))?;
+
+        // Return tuple (PDF ID, RsaPublicKey)
+        Ok((response.pdf_id, pub_key))
     }
 
-    pub async fn send_encrypted_pkg(pkg: &EncryptedPackage) -> anyhow::Result<HttpResponse> {
+    pub async fn send_encrypted_pkg(pdf_id: String, pkg: EncryptedPackage) -> anyhow::Result<HttpResponse> {
         let client = reqwest::Client::new();
-
         let settings = get_settings()?;
 
-        debug!("Sending encrypted package to RX...");
+        let rx_url = format!("http://{}:{}/{}", settings.rx.host, settings.rx.port, settings.rx.rcv_endp);
+        debug!("Sending payload to RX for PDF ID '{}'", pdf_id);
 
-        let rx_response = client.post(
-            format!(
-                "http://{}:{}/{}", settings.rx.host, settings.rx.port, settings.rx.rcv_endp)
-            )
-            .json(pkg)
+        // Send PDF ID and Encrypted Package to RX
+        let payload = RxPayload { pdf_id: pdf_id.clone(), pkg };
+
+        let rx_response = client.post(&rx_url)
+            .json(&payload)
             .send()
             .await?;
-        
+
         let raw_status = rx_response.status().as_u16();
         let status = actix_web::http::StatusCode::from_u16(raw_status)
             .unwrap_or(actix_web::http::StatusCode::INTERNAL_SERVER_ERROR);
 
         let body = rx_response.text().await.unwrap_or_else(|_| "Could not read RX response".to_string());
 
-        debug!("Encrypted package sent");
+        if status.is_success() {
+            debug!("Payload sent to RX for PDF ID '{}'", pdf_id);
+        }
 
         Ok(HttpResponse::build(status).body(body))
     }

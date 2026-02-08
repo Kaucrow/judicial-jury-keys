@@ -7,14 +7,14 @@ pub struct Encrypter {}
 impl Encrypter {
     pub async fn perform_hybrid_encryption(
         msg_bytes: &[u8],
-    ) -> anyhow::Result<EncryptedPackage> {
+    ) -> anyhow::Result<(String, EncryptedPackage)> {
         // Hash the message bytes
         let mut hasher = Sha256::new();
         hasher.update(msg_bytes);
         let hash = hasher.finalize();
 
         // Fetch public key from RX
-        let rx_pub_key = Transmitter::get_pub_key().await?;
+        let (pdf_id, rx_pub_key) = Transmitter::get_pub_key().await?;
 
         let mut rng = OsRng;
 
@@ -34,11 +34,14 @@ impl Encrypter {
             .map_err(|e| anyhow!("RSA error: {}", e))?;
         debug!("Encrypted AES session key with RX public key");
 
-        Ok(EncryptedPackage {
-            encrypted_session_key_b64: b64.encode(encrypted_session_key),
-            encrypted_data_b64: b64.encode(encrypted_data),
-            nonce_b64: b64.encode(nonce),
-            hash_b64: b64.encode(hash),
-        })
+        Ok((
+            pdf_id,
+            EncryptedPackage {
+                encrypted_session_key_b64: b64.encode(encrypted_session_key),
+                encrypted_data_b64: b64.encode(encrypted_data),
+                nonce_b64: b64.encode(nonce),
+                hash_b64: b64.encode(hash),
+            }
+        ))
     }
 }

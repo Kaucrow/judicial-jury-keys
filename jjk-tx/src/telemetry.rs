@@ -59,7 +59,7 @@ pub async fn get_subscriber(settings: &Settings) -> Result<(impl tracing::Subscr
             .with_writer(std::io::stdout)
             .with_ansi(true)
             .with_filter(console_filter));
-        
+
     Ok((subscriber, guard))
 }
 

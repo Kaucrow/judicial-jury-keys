@@ -25,8 +25,8 @@ pub async fn upload(
             // Encrypt the bytes
             // Returns immediately after processing the first file found
             match Encrypter::perform_hybrid_encryption(&msg_bytes).await {
-                Ok(pkg) => {
-                    let rx_response = Transmitter::send_encrypted_pkg(&pkg).await?;
+                Ok((pdf_id, pkg)) => {
+                    let rx_response = Transmitter::send_encrypted_pkg(pdf_id, pkg).await?;
                     return Ok(rx_response);
                 },
                 Err(e) => {
@@ -42,7 +42,7 @@ pub async fn upload(
     match result {
         Ok(response) => response,
         Err(e) => {
-            error!("Upload failed: {:?}", e);
+            error!("Upload failed: {}", e);
             HttpResponse::InternalServerError().body(e.to_string())
         }
     }
