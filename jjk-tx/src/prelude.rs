@@ -15,7 +15,7 @@ pub use base64::{Engine as _, engine::general_purpose::STANDARD as b64};
 pub use anyhow::anyhow;
 pub use std::{
     fs,
-    io::{self, Write},
+    io::{self, Write, Cursor},
     path::PathBuf
 };
 pub use tracing::{debug, info, warn, error};

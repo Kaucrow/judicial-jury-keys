@@ -1,5 +1,6 @@
-pub mod encryption;
-pub use encryption::Encrypter;
+pub mod encrypter;
+
+pub use encrypter::Encrypter;
 
 use crate::prelude::*;
 

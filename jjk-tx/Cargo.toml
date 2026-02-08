@@ -14,10 +14,12 @@ clearscreen = "4.0.3"
 colorize = "0.1.0"
 config = { version = "0.15.19", features = ["yaml"] }
 futures = "0.3.31"
+lopdf = "0.39.0"
 rand = "0.8.0"
 reqwest = { version = "0.13.1", features = ["json"] }
 rsa = "0.9.10"
 serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
 sha2 = "0.10.9"
 tracing = "0.1.44"
 tracing-appender = "0.2.4"

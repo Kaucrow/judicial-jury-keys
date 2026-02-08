@@ -2,13 +2,14 @@ use crate::prelude::*;
 use crate::{
     encryption::Encrypter,
     transmission::Transmitter,
+    pdf::PdfParser,
 };
 
 pub async fn upload(
     mut payload: Multipart,
 ) -> Result<HttpResponse, actix_web::Error> {
     // Iterate over the multipart stream (fields)
-    while let Ok(Some(mut field)) = payload.try_next().await {
+    while let Ok(Some(field)) = payload.try_next().await {
         match field.content_type() {
             Some(ct) if ct.subtype() == "pdf" => {
                 // It is a PDF, proceed to processing below
@@ -19,16 +20,17 @@ pub async fn upload(
             }
         }
 
-        // Read the file content into memory
-        let mut file_bytes = Vec::new();
-        while let Some(chunk) = field.next().await {
-            let data = chunk.map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
-            file_bytes.extend_from_slice(&data);
-        }
+        // Parse the PDF data
+        let msg = PdfParser::parse(field).await
+            .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
+
+        // Serialize the PDF data
+        let msg_bytes = serde_json::to_vec(&msg)
+            .map_err(|e| actix_web::error::ErrorInternalServerError(e))?;
 
         // Encrypt the bytes
         // Return immediately after processing the first file found
-        match Encrypter::perform_hybrid_encryption(&file_bytes).await {
+        match Encrypter::perform_hybrid_encryption(&msg_bytes).await {
             Ok(pkg) => {
                 // Send the encrypted package to RX
                 let rx_response = Transmitter::send_encrypted_pkg(&pkg).await
