@@ -5,6 +5,7 @@ pub use parser::PdfParser;
 use crate::prelude::*;
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PdfData {
     title: String,
     subject: String,

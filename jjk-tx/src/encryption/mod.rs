@@ -5,6 +5,7 @@ pub use encrypter::Encrypter;
 use crate::prelude::*;
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EncryptedPackage {
     encrypted_session_key_b64: String,
     encrypted_data_b64: String,
