@@ -1,0 +1,12 @@
+tx:
+  host: "127.0.0.1"
+  port: 8080
+  upload_endp: "upload"
+
+rx:
+  host: "127.0.0.1"
+  port: 8081
+  pub_key_endp: "public_key"
+  rcv_endp: "receive"
+
+debug: true
