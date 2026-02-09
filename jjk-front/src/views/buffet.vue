@@ -11,8 +11,8 @@ import Button from 'primevue/button';
   <h2 class="text-lg font-normal text-body lg:text-xl">Upload the case file to send to the prosecutor office</h2>
   <div class="p-4 m-3">
   <div class="p-4 m-3 flex items-center justify-center gap-3">
-    <FileUpload mode="basic" name="casefile" url="/jjk/tx/upload" accept=".pdf" maxFileSize="1000000" class="inline-block" />
-    <Button label="Submit Case" />
+    <FileUpload mode="basic" name="casefile" url="http://127.0.0.1:8080/upload" accept=".pdf" :maxFileSize="1000000" class="inline-block" :auto="true"/>
+    
   </div>
   </div>
     </div>

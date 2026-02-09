@@ -2,15 +2,17 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_USER: jjk
-      POSTGRES_PASSWORD: jjk
-      POSTGRES_DB: jjk
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: mi_db
     networks:
       - jjk-network
   jjk-rx:
     build: ./jjk-rx
     depends_on:
       - db
+    environment:
+      DATABASE_URL: postgres://user:pass@db:5432/mi_db
     networks:
       - jjk-network
   
