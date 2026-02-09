@@ -1,31 +1,35 @@
-use jjk_rx::db::db_component::Db;
-use jjk_rx::db::model::Usuario;
-use serde::Deserialize;
+use tracing_subscriber::fmt::format::FmtSpan;
 
-#[tokio::main]
-async fn main() -> Result<(), sqlx::Error> {
-    let db = Db::connect("postgres://user:pass@localhost:5432/mi_db", 5).await?;
+mod prelude;
+mod domain;
+mod encryption;
+mod storage;
+mod routes;
 
-    // fetch_one
-    let usuario = db
-        .fetch_one(db.query_as::<Usuario>("SELECT id, nombre FROM usuarios WHERE id = $1").bind(1))
-        .await?;
-    println!("Usuario: {:?}", usuario);
+use prelude::*;
+use storage::Database;
+use routes::handlers;
 
-    // fetch_many
-    let usuarios = db
-        .fetch_many(db.query_as::<Usuario>("SELECT id, nombre FROM usuarios"))
-        .await?;
-    println!("Usuarios: {:?}", usuarios);
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    // Init logging
+    tracing_subscriber::fmt()
+        .with_env_filter("info,jjk_rx=debug")
+        .with_span_events(FmtSpan::CLOSE)
+        .init();
 
-    // execute (insert/update/delete)
-    let filas = db
-        .execute(
-            db.query("INSERT INTO usuarios (nombre) VALUES ($1)")
-                .bind("Ana"),
-        )
-        .await?;
-    println!("Filas afectadas: {}", filas);
+    let db = Database::new();
+    let db_data = web::Data::new(db);
 
-    Ok(())
+    tracing::info!("JJK-RX Server starting on 127.0.0.1:8081");
+
+    HttpServer::new(move || {
+        App::new()
+            .app_data(db_data.clone())
+            .route("/public_key", web::get().to(handlers::get_public_key))
+            .route("/receive", web::post().to(handlers::receive_package))
+    })
+    .bind(("127.0.0.1", 8081))?
+    .run()
+    .await
 }

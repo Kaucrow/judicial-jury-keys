@@ -6,9 +6,15 @@ edition = "2024"
 [dependencies]
 actix-web = "4.12.1"
 aes-gcm = "0.10.3"
+anyhow = "1.0.95"
 base64 = "0.22.1"
-rsa = { version = "0.9.8", features = ["pem", "sha2"] }
-serde = { version = "1.0.228", features = ["derive"] }
-sha2 = "0.10.9"
+rand = "0.8.5"
+rsa = "0.9.7"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.149"
+sha2 = "0.10.8"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
+uuid = { version = "1.12.1", features = ["v4", "fast-rng"] }
 sqlx = { version = "0.8.5", features = ["runtime-tokio", "postgres"] }
 tokio = { version = "1.49.0", features = ["full"] }
