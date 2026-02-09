@@ -16,7 +16,7 @@ const products = ref([]);
 
 onMounted(async () => {
   try {
-    const response = await fetch('/jjk/rx/cases');
+    const response = await fetch('http://127.0.0.1:8080/cases');
     const cases = await response.json();
     products.value = cases;
   } catch (error) {
@@ -26,7 +26,7 @@ onMounted(async () => {
 
 const downloadCase = async (caseCode) => {
   try {
-    const response = await fetch(`/jjk/rx/download/${caseCode}`);
+    const response = await fetch(`http://127.0.0.1:8080/download/${caseCode}`);
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
