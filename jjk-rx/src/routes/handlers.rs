@@ -5,10 +5,10 @@ use crate::domain::{RxKeyResponse, RxPayload, PdfData};
 
 pub async fn get_public_key(db: web::Data<Database>) -> impl Responder {
     info!("Generating new key pair for upcoming transmission...");
-    
+
     // Generate new PDF_ID
     let pdf_id = Uuid::new_v4().to_string();
-    
+
     // Generate Keys
     match Decrypter::generate_keys() {
         Ok((priv_key, pub_key_pem)) => {
@@ -37,10 +37,10 @@ pub async fn receive_package(
 ) -> impl Responder {
     let pdf_id = &payload.pdf_id;
     let pkg = &payload.pkg;
-    
+
     info!("Received encrypted package for PDF ID: {}", pdf_id);
 
-    // 1. Get Private Key
+    // Get Private Key
     let priv_key = match db.get_private_key(pdf_id) {
         Ok(k) => k,
         Err(_) => {
@@ -49,7 +49,7 @@ pub async fn receive_package(
         }
     };
 
-    // 2. Decrypt
+    // Decrypt
     let plaintext_bytes = match Decrypter::decrypt_hybrid(
         &priv_key,
         &pkg.encrypted_session_key_b64,
@@ -63,7 +63,7 @@ pub async fn receive_package(
         }
     };
 
-    // 3. Verify Hash
+    // Verify Hash
     match Decrypter::verify_hash(&plaintext_bytes, &pkg.hash_b64) {
         Ok(true) => {
             debug!("Hash verification successful for {}", pdf_id);
@@ -77,8 +77,8 @@ pub async fn receive_package(
              return HttpResponse::BadRequest().body("Hash verification error");
         }
     }
-    
-    // Optional: Deserialize to PdfData to verify structure
+
+    // Deserialize to PdfData to verify structure
     match serde_json::from_slice::<PdfData>(&plaintext_bytes) {
         Ok(pdf_data) => {
              debug!("Decrypted Data - Title: '{}', Author: '{}'", pdf_data.title, pdf_data.author);
@@ -89,7 +89,7 @@ pub async fn receive_package(
         }
     }
 
-    // 4. Update DB (Simulating "Data Storage" step)
+    // Update DB (Simulating "Data Storage" step)
     if let Err(e) = db.update_with_package(pdf_id, pkg.clone()) {
         error!("Failed to update DB record: {}", e);
         return HttpResponse::InternalServerError().body("DB Update Error");

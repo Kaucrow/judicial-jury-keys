@@ -8,11 +8,15 @@ actix-web = "4.12.1"
 aes-gcm = "0.10.3"
 anyhow = "1.0.95"
 base64 = "0.22.1"
+chrono = "0.4.43"
+clearscreen = "4.0.3"
+config = { version = "0.15.19", features = ["yaml"] }
 rand = "0.8.5"
 rsa = "0.9.7"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.149"
 sha2 = "0.10.8"
 tracing = "0.1.41"
+tracing-appender = "0.2.4"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt"] }
 uuid = { version = "1.12.1", features = ["v4", "fast-rng"] }

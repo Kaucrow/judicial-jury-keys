@@ -26,21 +26,21 @@ impl Decrypter {
         let nonce_bytes = b64.decode(nonce_b64)
             .map_err(|e| anyhow!("Failed to decode nonce: {}", e))?;
 
-        // 2. Decrypt Session Key (RSA)
+        // Decrypt Session Key (RSA)
         // Tx uses Pkcs1v15Encrypt
         let session_key = private_key.decrypt(Pkcs1v15Encrypt, &enc_session_key)
             .map_err(|e| anyhow!("RSA Decryption failed: {}", e))?;
 
-        // 3. Decrypt Data (AES-GCM)
+        // Decrypt Data (AES-GCM)
         let cipher = Aes256Gcm::new_from_slice(&session_key)
             .map_err(|e| anyhow!("Invalid AES key length: {}", e))?;
-        
+
         // Ensure nonce is correct length (96-bits / 12 bytes for GCM standard)
         if nonce_bytes.len() != 12 {
             return Err(anyhow!("Invalid nonce length"));
         }
         let nonce = aes_gcm::Nonce::from_slice(&nonce_bytes);
-        
+
         let plaintext = cipher.decrypt(nonce, enc_data.as_ref())
             .map_err(|e| anyhow!("AES Decryption failed: {}", e))?;
 
@@ -50,11 +50,11 @@ impl Decrypter {
     pub fn verify_hash(data: &[u8], hash_b64: &str) -> Result<bool> {
         let expected_hash = b64.decode(hash_b64)
             .map_err(|e| anyhow!("Failed to decode hash: {}", e))?;
-            
+
         let mut hasher = Sha256::new();
         hasher.update(data);
         let actual_hash = hasher.finalize();
-        
+
         Ok(actual_hash.as_slice() == expected_hash.as_slice())
     }
 }
