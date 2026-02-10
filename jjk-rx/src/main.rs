@@ -1,30 +1,35 @@
-use jjk_rx::{
-    prelude::*,
-    settings::get_settings,
-    telemetry,
-    storage::Database,
-    routes::handlers,
-};
+use tracing_subscriber::fmt::format::FmtSpan;
+
+mod prelude;
+mod domain;
+mod encryption;
+mod storage;
+mod routes;
+mod db; 
+
+use prelude::*;
+use storage::Database;
+use routes::handlers;
 
 #[actix_web::main]
-async fn main() -> anyhow::Result<()> {
-    clearscreen::clear()?;
+async fn main() -> std::io::Result<()> {
+    let _ = clearscreen::clear();
 
-    let settings = get_settings()?;
+    // Load env vars
+    dotenvy::dotenv().ok();
 
-    // Init the tracing subscriber
-    let (subscriber, _guard) = telemetry::get_subscriber(&settings).await?;
-    telemetry::init_subscriber(subscriber);
+    // Init logging
+    tracing_subscriber::fmt()
+        .with_env_filter("jjk_rx=debug,actix_server=off,actix_web=off")
+        .with_span_events(FmtSpan::CLOSE)
+        .init();
 
-    let db = Database::new();
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set in .env or env vars");
+    let db = Database::connect(&database_url).await.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
     let db_data = web::Data::new(db);
 
-    let host = settings.rx.host;
-    let port = settings.rx.port;
-
-    info!("JJK-RX Server listening on {}:{}", host, port);
-    info!("Serving public keys on {}:{}/{}", host, port, settings.rx.pub_key_endp);
-    info!("Taking encrypted PKGs on {}:{}/{}", host, port, settings.rx.rcv_endp);
+    info!("Server listening on 127.0.0.1:8081");
+    info!("Endpoints: /public_key (GET), /receive (POST)");
 
     HttpServer::new(move || {
         App::new()
@@ -32,9 +37,7 @@ async fn main() -> anyhow::Result<()> {
             .route("/public_key", web::get().to(handlers::get_public_key))
             .route("/receive", web::post().to(handlers::receive_package))
     })
-    .bind((host, port))?
+    .bind(("127.0.0.1", 8081))?
     .run()
-    .await?;
-
-    Ok(())
+    .await
 }
