@@ -19,6 +19,7 @@ onMounted(async () => {
     const response = await fetch('/jjk/rx/cases');
     const cases = await response.json();
     products.value = cases;
+    console.log('Fetched cases:', cases);s
   } catch (error) {
     console.error('Error fetching cases:', error);
   }
