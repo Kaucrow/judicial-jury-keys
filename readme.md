@@ -12,3 +12,9 @@ docker compose down
 front will make calls to
 fetch('/api/rx/random-endpoint')
 fetch('/api/tx/random-endpoint')
+
+para reiniciar 
+docker compose restart nginx
+docker compose down
+
+y despues los comandos normales
