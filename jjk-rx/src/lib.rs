@@ -5,3 +5,4 @@ pub mod routes;
 pub mod encryption;
 pub mod storage;
 pub mod domain;
+pub mod db;

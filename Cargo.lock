@@ -1739,6 +1739,7 @@ dependencies = [
  "base64",
  "chrono",
  "clearscreen 3.0.0",
+ "config",
  "dotenvy",
  "rand 0.8.5",
  "rsa",
@@ -1748,6 +1749,7 @@ dependencies = [
  "sqlx",
  "tokio",
  "tracing",
+ "tracing-appender",
  "tracing-subscriber",
  "uuid",
 ]

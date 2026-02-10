@@ -1,7 +1,14 @@
-use crate::prelude::*;
 use crate::settings::Settings;
-
+use tracing_subscriber::{
+    fmt::{self, time::FormatTime},
+    layer::SubscriberExt,
+    EnvFilter,
+    Layer,
+};
+use tracing_appender;
+use chrono::{Datelike, Timelike};
 use anyhow::Result;
+use std::{fs, path::PathBuf};
 
 /// Log timestamp formatter, with the format `[day-month-year] [hour:minute:second.nanosecond]`.
 #[derive(Clone)]
