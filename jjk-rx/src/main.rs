@@ -15,10 +15,8 @@ use routes::handlers;
 async fn main() -> std::io::Result<()> {
     let _ = clearscreen::clear();
 
-    // Load env vars
     dotenvy::dotenv().ok();
 
-    // Init logging
     tracing_subscriber::fmt()
         .with_env_filter("jjk_rx=debug,actix_server=off,actix_web=off")
         .with_span_events(FmtSpan::CLOSE)
@@ -36,6 +34,8 @@ async fn main() -> std::io::Result<()> {
             .app_data(db_data.clone())
             .route("/public_key", web::get().to(handlers::get_public_key))
             .route("/receive", web::post().to(handlers::receive_package))
+            .route("/cases", web::get().to(handlers::list_cases))
+            .route("/download/{caseCode}", web::get().to(handlers::download_case))
     })
     .bind(("127.0.0.1", 8081))?
     .run()

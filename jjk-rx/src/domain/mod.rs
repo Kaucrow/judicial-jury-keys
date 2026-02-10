@@ -32,3 +32,12 @@ pub struct PdfData {
     pub keywords: String,
     pub file: Vec<u8>,
 }
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct CaseSummary {
+    pub case_code: String,
+    pub file_path: String,
+    pub description: Option<String>,
+    pub created_at: Option<chrono::NaiveDateTime>,
+}

@@ -1,28 +1,19 @@
 use crate::prelude::*;
-use crate::domain::EncryptedPackage; 
-use crate::db::db_component::Db; 
-use std::path::PathBuf;
-use tokio::fs; 
+use crate::db::db_component::Db;
+use crate::domain::CaseSummary;
 use rsa::pkcs8::{EncodePrivateKey, DecodePrivateKey};
+use sqlx::FromRow;
 
 #[derive(Clone)]
 pub struct Database {
     db: Db,
-    storage_path: PathBuf,
 }
 
 impl Database {
     pub async fn connect(database_url: &str) -> Result<Self> {
         let db = Db::connect(database_url, 5).await?;
-        let storage_path = PathBuf::from("./storage_files");
-        if !storage_path.exists() {
-            fs::create_dir_all(&storage_path).await?;
-        }
-        
-        Ok(Self {
-            db,
-            storage_path,
-        })
+
+        Ok(Self { db })
     }
 
     pub async fn insert_keys(&self, pdf_id: String, private_key: RsaPrivateKey, public_key_pem: String) -> Result<()> {
@@ -55,19 +46,11 @@ impl Database {
         Ok(priv_key)
     }
 
-    pub async fn update_with_package(&self, pdf_id: &str, pkg: EncryptedPackage) -> Result<()> {
-        let file_name = format!("{}.json", pdf_id);
-        let file_path = self.storage_path.join(&file_name);
-        
-        let content = serde_json::to_string_pretty(&pkg)?;
-        fs::write(&file_path, content).await?;
-
+    pub async fn update_file_path(&self, pdf_id: &str, file_path: &str) -> Result<()> {
         let sql = "UPDATE pdf SET file_path = $1, description = 'Received' WHERE record_num = $2";
-        
-        let path_str = file_path.to_string_lossy().to_string();
-        
+
         let result = sqlx::query(sql)
-            .bind(path_str)
+            .bind(file_path)
             .bind(pdf_id)
             .execute(self.db.pool())
             .await?;
@@ -77,6 +60,49 @@ impl Database {
         }
 
         Ok(())
+    }
+
+    pub async fn get_case_file_path(&self, case_code: &str) -> Result<String> {
+        let sql = "SELECT file_path FROM pdf WHERE record_num = $1";
+
+        let row: (String,) = sqlx::query_as::<_, (String,)>(sql)
+            .bind(case_code)
+            .fetch_one(self.db.pool())
+            .await
+            .map_err(|e| anyhow!("Failed to fetch file path: {}", e))?;
+
+        if row.0.trim().is_empty() {
+            return Err(anyhow!("File path is empty for case"));
+        }
+
+        Ok(row.0)
+    }
+
+    pub async fn list_cases(&self) -> Result<Vec<CaseSummary>> {
+        #[derive(FromRow)]
+        struct CaseRow {
+            record_num: String,
+            file_path: String,
+            description: Option<String>,
+            created_at: Option<chrono::NaiveDateTime>,
+        }
+
+        let sql = "SELECT record_num, file_path, description, created_at FROM pdf ORDER BY created_at DESC";
+
+        let rows: Vec<CaseRow> = sqlx::query_as(sql)
+            .fetch_all(self.db.pool())
+            .await
+            .map_err(|e| anyhow!("Failed to fetch cases: {}", e))?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| CaseSummary {
+                case_code: row.record_num,
+                file_path: row.file_path,
+                description: row.description,
+                created_at: row.created_at,
+            })
+            .collect())
     }
 }
 

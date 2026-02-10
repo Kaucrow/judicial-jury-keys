@@ -1,7 +1,9 @@
 use crate::prelude::*;
 use crate::storage::Database;
 use crate::encryption::Decrypter;
-use crate::domain::{RxKeyResponse, RxPayload, PdfData};
+use crate::domain::{RxKeyResponse, RxPayload, PdfData, CaseSummary};
+use std::path::PathBuf;
+use tokio::fs;
 
 pub async fn get_public_key(db: web::Data<Database>) -> impl Responder {
     info!("Generating new key pair for upcoming transmission...");
@@ -72,20 +74,65 @@ pub async fn receive_package(
         }
     }
     
-    match serde_json::from_slice::<PdfData>(&plaintext_bytes) {
-        Ok(pdf_data) => {
-             debug!("Decrypted Data - Title: '{}', Author: '{}'", pdf_data.title, pdf_data.author);
-        },
-        Err(e) => {
-             error!("Failed to deserialize PDF Data: {}", e);
+    let pdf_data = match serde_json::from_slice::<PdfData>(&plaintext_bytes) {
+        Ok(data) => {
+            debug!("Decrypted Data - Title: '{}', Author: '{}'", data.title, data.author);
+            data
         }
+        Err(e) => {
+            error!("Failed to deserialize PDF Data: {}", e);
+            return HttpResponse::BadRequest().body("Invalid PDF payload");
+        }
+    };
+
+    let out_dir = PathBuf::from("./out");
+    if let Err(e) = fs::create_dir_all(&out_dir).await {
+        error!("Failed to create output directory: {}", e);
+        return HttpResponse::InternalServerError().body("Storage Error");
     }
 
-    if let Err(e) = db.update_with_package(pdf_id, pkg.clone()).await {
+    let file_path = out_dir.join(format!("{}.pdf", pdf_id));
+    if let Err(e) = fs::write(&file_path, &pdf_data.file).await {
+        error!("Failed to write PDF file: {}", e);
+        return HttpResponse::InternalServerError().body("Storage Error");
+    }
+
+    if let Err(e) = db.update_file_path(pdf_id, &file_path.to_string_lossy()).await {
         error!("Failed to update DB record: {}", e);
         return HttpResponse::InternalServerError().body("DB Update Error");
     }
 
     info!("Transmission successful for PDF ID: {}", pdf_id);
     HttpResponse::Ok().body("Transmission received and verified successfully")
+}
+
+pub async fn list_cases(db: web::Data<Database>) -> impl Responder {
+    let cases: Vec<CaseSummary> = match db.list_cases().await {
+        Ok(items) => items,
+        Err(e) => return HttpResponse::InternalServerError().body(e.to_string()),
+    };
+
+    HttpResponse::Ok().json(cases)
+}
+
+pub async fn download_case(
+    db: web::Data<Database>,
+    path: web::Path<String>,
+) -> impl Responder {
+    let case_code = path.into_inner();
+
+    let file_path = match db.get_case_file_path(&case_code).await {
+        Ok(p) => p,
+        Err(_) => return HttpResponse::NotFound().body("Case not found"),
+    };
+
+    let bytes = match fs::read(&file_path).await {
+        Ok(data) => data,
+        Err(_) => return HttpResponse::NotFound().body("PDF not found"),
+    };
+
+    HttpResponse::Ok()
+        .content_type("application/pdf")
+        .append_header(("Content-Disposition", format!("attachment; filename=\"{}.pdf\"", case_code)))
+        .body(bytes)
 }

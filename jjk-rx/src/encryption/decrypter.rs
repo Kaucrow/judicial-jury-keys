@@ -24,7 +24,6 @@ impl Decrypter {
             .map_err(|e| anyhow!("Failed to decode encrypted data: {}", e))?;
         let nonce_bytes = b64.decode(nonce_b64)
             .map_err(|e| anyhow!("Failed to decode nonce: {}", e))?;
-
         let session_key = private_key.decrypt(Pkcs1v15Encrypt, &enc_session_key)
             .map_err(|e| anyhow!("RSA Decryption failed: {}", e))?;
 
