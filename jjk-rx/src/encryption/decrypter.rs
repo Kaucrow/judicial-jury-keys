@@ -18,24 +18,18 @@ impl Decrypter {
         encrypted_data_b64: &str,
         nonce_b64: &str,
     ) -> Result<Vec<u8>> {
-        // 1. Decode Base64
         let enc_session_key = b64.decode(encrypted_session_key_b64)
             .map_err(|e| anyhow!("Failed to decode session key: {}", e))?;
         let enc_data = b64.decode(encrypted_data_b64)
             .map_err(|e| anyhow!("Failed to decode encrypted data: {}", e))?;
         let nonce_bytes = b64.decode(nonce_b64)
             .map_err(|e| anyhow!("Failed to decode nonce: {}", e))?;
-
-        // 2. Decrypt Session Key (RSA)
-        // Tx uses Pkcs1v15Encrypt
         let session_key = private_key.decrypt(Pkcs1v15Encrypt, &enc_session_key)
             .map_err(|e| anyhow!("RSA Decryption failed: {}", e))?;
 
-        // 3. Decrypt Data (AES-GCM)
         let cipher = Aes256Gcm::new_from_slice(&session_key)
             .map_err(|e| anyhow!("Invalid AES key length: {}", e))?;
         
-        // Ensure nonce is correct length (96-bits / 12 bytes for GCM standard)
         if nonce_bytes.len() != 12 {
             return Err(anyhow!("Invalid nonce length"));
         }

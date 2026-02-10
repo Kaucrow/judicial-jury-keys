@@ -1,54 +1,109 @@
 use crate::prelude::*;
-use crate::domain::EncryptedPackage;
-
-#[derive(Clone)]
-pub struct KeyRecord {
-    pub pdf_id: String,
-    pub private_key: RsaPrivateKey,
-    pub public_key_pem: String,
-    pub complete: bool,
-    pub encrypted_pkg: Option<EncryptedPackage>,
-}
+use crate::db::db_component::Db;
+use crate::domain::CaseSummary;
+use rsa::pkcs8::{EncodePrivateKey, DecodePrivateKey};
+use sqlx::FromRow;
 
 #[derive(Clone)]
 pub struct Database {
-    // In-memory store: PDF_ID -> Record
-    store: Arc<Mutex<HashMap<String, KeyRecord>>>,
+    db: Db,
 }
 
 impl Database {
-    pub fn new() -> Self {
-        Self {
-            store: Arc::new(Mutex::new(HashMap::new())),
-        }
+    pub async fn connect(database_url: &str) -> Result<Self> {
+        let db = Db::connect(database_url, 5).await?;
+
+        Ok(Self { db })
     }
 
-    pub fn insert_keys(&self, pdf_id: String, private_key: RsaPrivateKey, public_key_pem: String) -> Result<()> {
-        let mut store = self.store.lock().map_err(|_| anyhow!("Poisoned lock"))?;
-        store.insert(pdf_id.clone(), KeyRecord {
-            pdf_id,
-            private_key,
-            public_key_pem,
-            complete: false,
-            encrypted_pkg: None,
-        });
+    pub async fn insert_keys(&self, pdf_id: String, private_key: RsaPrivateKey, public_key_pem: String) -> Result<()> {
+        let private_key_pem = private_key.to_pkcs8_pem(LineEnding::LF)?.to_string();
+
+        let sql = "INSERT INTO pdf (record_num, public_key, private_key, file_path) VALUES ($1, $2, $3, '')";
+        
+        sqlx::query(sql)
+            .bind(pdf_id)
+            .bind(public_key_pem)
+            .bind(private_key_pem)
+            .execute(self.db.pool())
+            .await?;
+            
         Ok(())
     }
 
-    pub fn get_private_key(&self, pdf_id: &str) -> Result<RsaPrivateKey> {
-        let store = self.store.lock().map_err(|_| anyhow!("Poisoned lock"))?;
-        let record = store.get(pdf_id).ok_or_else(|| anyhow!("PDF ID not found"))?;
-        Ok(record.private_key.clone())
+    pub async fn get_private_key(&self, pdf_id: &str) -> Result<RsaPrivateKey> {
+        let sql = "SELECT private_key FROM pdf WHERE record_num = $1";
+        
+        let row: (String,) = sqlx::query_as::<_, (String,)>(sql)
+            .bind(pdf_id)
+            .fetch_one(self.db.pool())
+            .await
+            .map_err(|e| anyhow!("Failed to fetch private key: {}", e))?;
+
+        let priv_key_pem = row.0;
+        let priv_key = RsaPrivateKey::from_pkcs8_pem(&priv_key_pem)?;
+        
+        Ok(priv_key)
     }
 
-    pub fn update_with_package(&self, pdf_id: &str, pkg: EncryptedPackage) -> Result<()> {
-        let mut store = self.store.lock().map_err(|_| anyhow!("Poisoned lock"))?;
-        if let Some(record) = store.get_mut(pdf_id) {
-            record.encrypted_pkg = Some(pkg);
-            record.complete = true;
-            Ok(())
-        } else {
-            Err(anyhow!("PDF ID not found"))
+    pub async fn update_file_path(&self, pdf_id: &str, file_path: &str) -> Result<()> {
+        let sql = "UPDATE pdf SET file_path = $1, description = 'Received' WHERE record_num = $2";
+
+        let result = sqlx::query(sql)
+            .bind(file_path)
+            .bind(pdf_id)
+            .execute(self.db.pool())
+            .await?;
+
+        if result.rows_affected() == 0 {
+            return Err(anyhow!("PDF Record not found to update"));
         }
+
+        Ok(())
+    }
+
+    pub async fn get_case_file_path(&self, case_code: &str) -> Result<String> {
+        let sql = "SELECT file_path FROM pdf WHERE record_num = $1";
+
+        let row: (String,) = sqlx::query_as::<_, (String,)>(sql)
+            .bind(case_code)
+            .fetch_one(self.db.pool())
+            .await
+            .map_err(|e| anyhow!("Failed to fetch file path: {}", e))?;
+
+        if row.0.trim().is_empty() {
+            return Err(anyhow!("File path is empty for case"));
+        }
+
+        Ok(row.0)
+    }
+
+    pub async fn list_cases(&self) -> Result<Vec<CaseSummary>> {
+        #[derive(FromRow)]
+        struct CaseRow {
+            record_num: String,
+            file_path: String,
+            description: Option<String>,
+            created_at: Option<chrono::NaiveDateTime>,
+        }
+
+        let sql = "SELECT record_num, file_path, description, created_at FROM pdf ORDER BY created_at DESC";
+
+        let rows: Vec<CaseRow> = sqlx::query_as(sql)
+            .fetch_all(self.db.pool())
+            .await
+            .map_err(|e| anyhow!("Failed to fetch cases: {}", e))?;
+
+        Ok(rows
+            .into_iter()
+            .map(|row| CaseSummary {
+                case_code: row.record_num,
+                file_path: row.file_path,
+                description: row.description,
+                created_at: row.created_at,
+            })
+            .collect())
     }
 }
+
+

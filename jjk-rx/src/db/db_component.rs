@@ -10,6 +10,7 @@ pub struct Db {
     pool: PgPool,
 }
 
+#[allow(dead_code)]
 impl Db {
     pub async fn connect(database_url: &str, max_connections: u32) -> DbResult<Self> {
         let pool = PgPoolOptions::new()
