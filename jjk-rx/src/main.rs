@@ -26,7 +26,7 @@ async fn main() -> std::io::Result<()> {
     let db = Database::connect(&database_url).await.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
     let db_data = web::Data::new(db);
 
-    info!("Server listening on 127.0.0.1:8081");
+    info!("Server listening on 0.0.0.0:8081");
     info!("Endpoints: /public_key (GET), /receive (POST)");
 
     HttpServer::new(move || {
@@ -37,7 +37,7 @@ async fn main() -> std::io::Result<()> {
             .route("/cases", web::get().to(handlers::list_cases))
             .route("/download/{caseCode}", web::get().to(handlers::download_case))
     })
-    .bind(("127.0.0.1", 8081))?
+    .bind(("0.0.0.0", 8081))?
     .run()
     .await
 }
