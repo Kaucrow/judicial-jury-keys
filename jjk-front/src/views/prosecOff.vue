@@ -1,15 +1,16 @@
 <script setup>
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
-import ColumnGroup from 'primevue/columngroup';   
-import Row from 'primevue/row';                   
 import Button from 'primevue/button';
+import Tag from 'primevue/tag'; 
+import InputText from 'primevue/inputtext';
+import { ref } from 'vue';
 
-const products = [
-    { code: 'C001', name: 'Case A', category: 'Theft' },
-    { code: 'C002', name: 'Case B', category: 'Fraud' },
-    { code: 'C003', name: 'Case C', category: 'Assault' },
-];
+const products = ref([
+    { title: 'Case A', subject: 'Penal', author: 'Jane Doe', keywords: ['theft', 'robbery', 'burglary'] },
+    { title: 'Case B', subject: 'Penal', author: 'John Smith', keywords: ['fraud', 'scam'] },
+    { title: 'Case C', subject: 'Penal', author: 'Alice Johnson', keywords: ['assault', 'violence'] },
+]);
 
 </script>
 
@@ -20,15 +21,22 @@ const products = [
 
     <div class="justify-content-center text-center m-7">
         <DataTable :value="products" tableStyle="min-width: 50rem">
-            <Column field="code" header="Code"></Column>
-            <Column field="name" header="Name"></Column>
-            <Column field="category" header="Category"></Column>
+            <Column field="title" header="Title" sortable></Column>
+            <Column field="subject" header="Subject" sortable></Column>
+            <Column field="author" header="Author" sortable></Column>
+            <Column field="keywords" header="Keywords">
+                    <template #body="slotProps">
+                        <div class="flex flex-wrap gap-1">
+                            <Tag v-for="tag in slotProps.data.keywords" :key="tag" :value="tag" severity="secondary" />
+                        </div>
+                    </template>
+                </Column>
             <Column header="Download">
                 <template #body="slotProps">
                     <Button label="Download" class="p-button-success"></Button>
-                </template>
-            </Column>
-        </DataTable>
+                    </template>
+                </Column>
+            </DataTable>
+        </div>
     </div>
-</div>
 </template>
