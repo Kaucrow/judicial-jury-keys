@@ -21,7 +21,7 @@ const onUpload = () => {
           <FileUpload mode="basic" name="casefile" url="/jjk/tx/upload" accept=".pdf" :maxFileSize="1000000" class="inline-block" :auto="true" @upload="onUpload"/>
         </div>
         <div v-if="showImage" class="flex items-center justify-center mt-4">
-          <img src="jjk-front/public/half.png" alt="Upload Success" class="max-w-full h-auto" />
+          <img src="/half.png" alt="Upload Success" class="max-w-full h-auto" />
         </div>
       </div>
     </div>

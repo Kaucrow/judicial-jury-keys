@@ -19,7 +19,7 @@ onMounted(async () => {
     const response = await fetch('/jjk/rx/cases');
     const cases = await response.json();
     products.value = cases;
-    console.log('Fetched cases:', cases);s
+    console.log('Fetched cases:', cases);
   } catch (error) {
     console.error('Error fetching cases:', error);
   }
@@ -48,12 +48,12 @@ const downloadCase = async (caseCode) => {
 
     <div class="justify-content-center text-center m-7">
         <DataTable :value="products" tableStyle="min-width: 50rem">
-            <Column field="code" header="Code"></Column>
-            <Column field="name" header="Name"></Column>
-            <Column field="category" header="Category"></Column>
+            <Column field="caseCode" header="Code"></Column>
+            <Column field="description" header="Description"></Column>
+            <Column field="createdAt" header="Created"></Column>
             <Column header="Download">
                 <template #body="slotProps">
-                    <Button label="Download" class="p-button-success" @click="downloadCase(slotProps.data.code)"></Button>
+                    <Button label="Download" class="p-button-success" @click="downloadCase(slotProps.data.caseCode)"></Button>
                 </template>
             </Column>
         </DataTable>

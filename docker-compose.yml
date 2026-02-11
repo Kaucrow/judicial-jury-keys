@@ -15,6 +15,8 @@ services:
       - db
     environment:
       DATABASE_URL: postgres://user:pass@db:5432/mi_db
+    volumes:
+      - ./jjk-rx/out:/app/out
     networks:
       - jjk-network
   
