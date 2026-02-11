@@ -13,6 +13,7 @@ import Button from 'primevue/button';
 //];
 
 const products = ref([]);
+const showImage = ref(false);
 
 onMounted(async () => {
   try {
@@ -35,6 +36,7 @@ const downloadCase = async (caseCode) => {
     a.download = `${caseCode}.pdf`;
     a.click();
     window.URL.revokeObjectURL(url);
+    showImage.value = true;
   } catch (error) {
     console.error('Error downloading case:', error);
   }
@@ -57,6 +59,9 @@ const downloadCase = async (caseCode) => {
                 </template>
             </Column>
         </DataTable>
+    </div>
+    <div v-if="showImage" class="flex items-center justify-center mt-4">
+      <img src="/full.jpeg" alt="Download complete" class="max-w-full h-auto" />
     </div>
 </div>
 </template>
