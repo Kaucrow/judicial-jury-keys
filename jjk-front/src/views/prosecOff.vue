@@ -50,7 +50,7 @@ const downloadCase = async (caseCode) => {
 
     <div class="justify-content-center text-center m-7">
         <DataTable :value="products" tableStyle="min-width: 50rem">
-            <Column field="caseCode" header="Code"></Column>
+            <Column field="caseCode" header="Case Code"></Column>
             <Column field="description" header="Description"></Column>
             <Column field="createdAt" header="Created"></Column>
             <Column header="Download">
@@ -60,8 +60,31 @@ const downloadCase = async (caseCode) => {
             </Column>
         </DataTable>
     </div>
-    <div v-if="showImage" class="flex items-center justify-center mt-4">
-      <img src="/full.jpeg" alt="Download complete" class="max-w-full h-auto" />
-    </div>
+    <transition name="fade-scale">
+  <div v-if="showImage" class="flex flex-col items-center justify-center mt-4">
+    <img src="/full.jpeg" alt="Download complete" class="max-w-full h-auto" />
+    <p class="mt-4 text-lg font-semibold text-red-700">Acoplado</p>
+  </div>
+</transition>
 </div>
 </template>
+
+<style scoped>
+.fade-scale-enter-active {
+  transition: all 0.6s ease-out;
+}
+
+.fade-scale-leave-active {
+  transition: all 0.3s ease-in;
+}
+
+.fade-scale-enter-from {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.fade-scale-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+</style>
