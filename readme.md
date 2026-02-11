@@ -1,20 +1,21 @@
-## docker compose
-because the servers are in the same network we dont use localhost, we use the service name
+# How to run
+### In the repo root
+```
+docker compose build
+docker compose up
+```
 
 ## commands
 
-docker compose build
+``` js
+docker compose build 
 
 docker compose up
 
-docker compose down
+docker compose down // apagar el docker
 
-front will make calls to
-fetch('/api/rx/random-endpoint')
-fetch('/api/tx/random-endpoint')
-
-para reiniciar 
+// para reiniciar por algun error de CORS
 docker compose restart nginx
 docker compose down
 
-y despues los comandos normales
+```
