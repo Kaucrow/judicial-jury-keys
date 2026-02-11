@@ -4,7 +4,7 @@ tx:
   upload_endp: "upload"
 
 rx:
-  host: "jjk-rx"
+  host: "0.0.0.0"
   port: 8081
   pub_key_endp: "public_key"
   rcv_endp: "receive"

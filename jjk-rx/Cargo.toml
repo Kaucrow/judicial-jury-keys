@@ -6,6 +6,20 @@ edition = "2024"
 [dependencies]
 actix-web = "4.12.1"
 aes-gcm = "0.10.3"
+anyhow = "1.0.95"
 base64 = "0.22.1"
-serde = { version = "1.0.228", features = ["derive"] }
+clearscreen = "3.0.0"
+chrono = { version = "0.4.43", features = ["serde"] }
+dotenvy = "0.15.7"
+rand = "0.8.5"
+rsa = "0.9.7"
+serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.149"
+sha2 = "0.10.8"
+sqlx = { version = "0.8.6", features = ["postgres", "runtime-tokio-native-tls", "macros", "chrono"] }
+tokio = { version = "1.49.0", features = ["full"] }
+tracing = "0.1.41"
+config = { version = "0.15.19", features = ["yaml"] }
+tracing-appender = "0.2.4"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "fmt", "time", "chrono"] }
+uuid = { version = "1.12.1", features = ["v4", "fast-rng"] }

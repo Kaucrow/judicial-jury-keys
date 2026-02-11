@@ -15,8 +15,11 @@ async fn main() -> anyhow::Result<()> {
     let (subscriber, _guard) = telemetry::get_subscriber(&settings).await?;
     telemetry::init_subscriber(subscriber);
 
-    info!("Server listening on {}:{}", settings.tx.host, settings.tx.port);
-    info!("Taking uploads on {}:{}/{}", settings.tx.host, settings.tx.port, settings.tx.upload_endp);
+    let host = settings.tx.host;
+    let port = settings.tx.port;
+
+    info!("JJK-TX Server listening on {}:{}", host, port);
+    info!("Taking uploads on {}:{}/{}", host, port, settings.tx.upload_endp);
 
     HttpServer::new(move || {
         App::new()
@@ -25,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
                 web::post().to(upload)
             )
     })
-    .bind((settings.tx.host, settings.tx.port))?
+    .bind((host, port))?
     .run()
     .await?;
 
